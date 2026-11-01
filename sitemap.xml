@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- EXEMPLO: substitua https://www.seudominio.com.br pelo domínio real antes de publicar. -->
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<url><loc>https://www.seudominio.com.br/index.html</loc></url>
+<url><loc>https://www.seudominio.com.br/categorias.html</loc></url>
+<url><loc>https://www.seudominio.com.br/ofertas.html</loc></url>
+<url><loc>https://www.seudominio.com.br/mais-vendidos.html</loc></url>
+<url><loc>https://www.seudominio.com.br/busca.html</loc></url>
+<url><loc>https://www.seudominio.com.br/faixas-de-preco.html</loc></url>
+<url><loc>https://www.seudominio.com.br/como-funciona.html</loc></url>
+<url><loc>https://www.seudominio.com.br/privacidade.html</loc></url>
+<url><loc>https://www.seudominio.com.br/contato.html</loc></url>
+</urlset>
