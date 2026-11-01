@@ -6,7 +6,7 @@ const CONFIG = {
   // Use somente se o programa de afiliados confirmar esse parâmetro de rastreamento.
   subIdParametro: '',
   subIdPrefixo: 'achei',
-  cacheMinutos: 30
+  cacheMinutos: 5
 };
 const page = document.body.dataset.page;
 const $ = (s, root=document) => root.querySelector(s);
@@ -26,14 +26,14 @@ function recordCategory(c){if(!c)return;profile.categorias[c]=(profile.categoria
 function recordView(p){profile.vistos=[p.id,...profile.vistos.filter(x=>x!==p.id)].slice(0,30);recordCategory(p.categoria);let band=p.preco<=20?'20':p.preco<=50?'50':p.preco<=100?'100':'mais';profile.precos[band]=(profile.precos[band]||0)+1;saveProfile()}
 function safeUrl(u){try{let x=new URL(u,location.href);return ['https:','http:'].includes(x.protocol)?x.href:''}catch{return ''}}
 function affiliate(p){let url=safeUrl(p.linkAfiliado);if(!url||p.exemplo)return '';let u=new URL(url);if(CONFIG.subIdParametro)u.searchParams.set(CONFIG.subIdParametro,`${CONFIG.subIdPrefixo}_${page}_${p.id}`);return u.href}
-/* API: substitua esta função por fetch de um endpoint próprio no servidor.
-   O servidor consulta a API da Shopee e guarda credenciais secretas; jamais as exponha aqui.
-   Normalize a resposta para os mesmos campos do produtos.json. */
+/* Consulta a API de Afiliados pelo endpoint serverless. As credenciais ficam somente no servidor. */
 async function buscarProdutos(){
- if(consent==='sim'){try{const cache=JSON.parse(get('cache')||'null');if(cache && Date.now()-cache.em<CONFIG.cacheMinutos*60000 && Array.isArray(cache.dados))return cache.dados}catch{}}
- const response=await fetch('produtos.json');if(!response.ok)throw new Error('Não foi possível carregar o catálogo.');
- const data=await response.json();if(!Array.isArray(data))throw new Error('Formato de catálogo inválido.');
- if(consent==='sim')set('cache',JSON.stringify({em:Date.now(),dados:data}));return data;
+ if(consent==='sim'){try{const cache=JSON.parse(get('cache')||'null');if(cache?.versao===2 && Date.now()-cache.em<CONFIG.cacheMinutos*60000 && Array.isArray(cache.dados))return cache.dados}catch{}}
+ const response=await fetch('/api/products',{headers:{Accept:'application/json'}});let data;
+ try{data=await response.json()}catch{throw new Error('A API de produtos retornou uma resposta inválida.')}
+ if(!response.ok)throw new Error(data?.error||'Não foi possível consultar a API de produtos.');
+ if(!Array.isArray(data))throw new Error('Formato de catálogo inválido.');
+ if(consent==='sim')set('cache',JSON.stringify({versao:2,em:Date.now(),dados:data}));return data;
 }
 // Recomendação transparente: desconto, vendas, avaliação e frete + afinidade local.
 function score(p){const affinity=(profile.categorias[p.categoria]||0)*5+(profile.favoritos.includes(p.id)?12:0)+(profile.vistos.includes(p.id)?2:0);
@@ -48,7 +48,7 @@ function card(p){const link=affiliate(p), fav=profile.favoritos.includes(p.id), 
  return `<article class="card" data-view-id="${esc(p.id)}"><div class="card-img"><img src="${esc(img)}" loading="lazy" alt="${esc(p.titulo)}${p.exemplo?' (imagem ilustrativa)':''}" onerror="this.hidden=true"><span class="badge-desconto">${esc(p.desconto)}% OFF</span>${best?'<span class="badge-topo">Mais vendido</span>':''}</div><div class="card-body">${p.exemplo?'<span class="example-label">EXEMPLO FICTÍCIO</span>':''}<div class="title">${esc(p.titulo)}</div><div class="meta"><span class="stars" aria-hidden="true">★</span><span>${esc(p.avaliacao)} / 5</span><span>• ${num(p.vendidos)} vendidos</span></div><div class="price-row"><span class="price">${money(p.preco)}</span>${p.precoOriginal!=null?`<span class="old">${money(p.precoOriginal)}</span>`:''}</div>${Number(p.precoOriginal)>Number(p.preco)?`<span class="economia">Economia de ${money(p.precoOriginal-p.preco)}</span>`:''}${p.freteGratis?'<span class="fretegratis">✓ Frete grátis informado</span>':''}<div class="card-actions">${link?`<a class="btn-shop" href="${esc(link)}" target="_blank" rel="sponsored noopener noreferrer" data-product="${esc(p.id)}">Ver na Shopee ↗</a>`:'<span class="btn-shop" aria-disabled="true" title="Link não configurado">Link indisponível</span>'}<button class="btn-fav ${fav?'active':''}" data-fav="${esc(p.id)}" aria-label="${fav?'Remover dos':'Adicionar aos'} favoritos: ${esc(p.titulo)}" aria-pressed="${fav}">${fav?'♥':'♡'}</button></div></div></article>`}
 function drawGrid(selector,arr){const el=$(selector);if(!el)return;let section=el.closest('section');if(!arr.length && ['continue','relacionados'].includes(el.id)){if(section)section.hidden=true;return}if(section)section.hidden=false;el.innerHTML=arr.length?arr.map(card).join(''):'<p class="empty">Nenhum produto disponível.</p>'}
 const icons={'Casa e Cozinha':'⌂','Beleza':'✿','Moda Feminina':'♧','Moda Masculina':'♢','Eletrônicos e Acessórios':'⌁','Infantil':'★','Pet':'♥','Ferramentas e Automotivo':'⚒'};
-function drawCats(){let el=$('#cats');if(!el)return;const cats=[...new Set(products.map(x=>x.categoria))];el.innerHTML=cats.map(c=>`<a class="${page==='categorias'?'cat-large':'cat-card'}" href="categoria.html?c=${encodeURIComponent(c)}"><span class="${page==='categorias'?'icon':'cat-icon'}" aria-hidden="true">${icons[c]||'✦'}</span><span><h3>${esc(c)}</h3><small>${products.filter(x=>x.categoria===c).length} produtos de exemplo</small></span></a>`).join('')}
+function drawCats(){let el=$('#cats');if(!el)return;const cats=[...new Set(products.map(x=>x.categoria))];el.innerHTML=cats.map(c=>`<a class="${page==='categorias'?'cat-large':'cat-card'}" href="categoria.html?c=${encodeURIComponent(c)}"><span class="${page==='categorias'?'icon':'cat-icon'}" aria-hidden="true">${icons[c]||'✦'}</span><span><h3>${esc(c)}</h3><small>${products.filter(x=>x.categoria===c).length} ofertas disponíveis</small></span></a>`).join('')}
 function renderHome(){if(page!=='index')return;drawGrid('#recomendados',[...products].sort((a,b)=>score(b)-score(a)).slice(0,4));drawGrid('#vendidos',[...products].sort((a,b)=>b.vendidos-a.vendidos).slice(0,4));drawGrid('#descontos',[...products].sort((a,b)=>b.desconto-a.desconto).slice(0,4));let viewed=profile.vistos.map(id=>products.find(p=>p.id===id)).filter(Boolean);drawGrid('#continue',viewed.slice(0,4));let categories=new Set(viewed.map(x=>x.categoria));drawGrid('#relacionados',products.filter(p=>categories.has(p.categoria)&&!profile.vistos.includes(p.id)).sort((a,b)=>score(b)-score(a)).slice(0,4));}
 const recordedInPage = new Set();
 let visible=12, filtered=[];
@@ -88,5 +88,5 @@ function setupUI(){let cookie=$('#cookie');cookie.hidden=!!consent;$('[data-acce
  const contact=$('#contact');if(contact)contact.addEventListener('submit',e=>{e.preventDefault();if(!CONFIG.emailContato){$('#contact-message').textContent='O endereço de contato ainda não foi configurado.';return}const body=`Nome: ${$('#nome').value}\nE-mail: ${$('#email').value}\n\n${$('#mensagem').value}`;location.href=`mailto:${encodeURIComponent(CONFIG.emailContato)}?subject=${encodeURIComponent('Contato pelo site')}&body=${encodeURIComponent(body)}`});}
 // BreadcrumbList só usa a URL atual: publique no domínio definitivo antes de indexar.
 function breadcrumbSchema(){if(page==='index'||!/^https?:$/.test(location.protocol))return;let title=$('#list-title')?.textContent||$('h1')?.textContent;if(!title)return;let data={'@context':'https://schema.org','@type':'BreadcrumbList',itemListElement:[{'@type':'ListItem',position:1,name:'Início',item:new URL('index.html',location.href).href},{'@type':'ListItem',position:2,name:title,item:location.href}]};let script=document.createElement('script');script.type='application/ld+json';script.textContent=JSON.stringify(data);document.head.appendChild(script)}
-async function init(){setupUI();try{products=await buscarProdutos();drawCats();renderHome();setupListing();breadcrumbSchema();suggestions();refresh();if(consent && !sess.get('asked') && consent==='sim'){sess.set('asked');preferences()}else if(consent)scheduleWelcome()}catch(e){console.error(e);$$('.skeleton').forEach(el=>el.outerHTML='<p class="empty">Não foi possível carregar o catálogo. Tente novamente mais tarde.</p>');if($('#count'))$('#count').textContent='Catálogo indisponível.'}}
+async function init(){setupUI();try{products=await buscarProdutos();drawCats();renderHome();setupListing();breadcrumbSchema();suggestions();refresh();if(consent && !sess.get('asked') && consent==='sim'){sess.set('asked');preferences()}else if(consent)scheduleWelcome()}catch(e){console.error(e);$$('.skeleton').forEach(el=>el.outerHTML='<p class="empty">Catálogo indisponível. Configure SHOPEE_APP_ID e SHOPEE_APP_SECRET nas variáveis de ambiente da Vercel e confira os logs da função.</p>');if($('#count'))$('#count').textContent='Catálogo indisponível.'}}
 init();
