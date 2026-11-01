@@ -4,7 +4,7 @@ const { createHash } = require('node:crypto');
 
 const SHOPEE_ENDPOINT = 'https://open-api.affiliate.shopee.com.br/graphql';
 const PRODUCT_QUERY = `query {
-  productOfferV2(listType: 0, page: 1, limit: 20) {
+  productOfferV2(listType: 0, sortType: 2, page: 1, limit: 20) {
     nodes {
       itemId
       price
@@ -66,7 +66,6 @@ function mapOffer(offer, categoryMap) {
     // offerLink é o link de oferta de afiliado retornado pela própria API.
     linkAfiliado: String(offer.offerLink || ''),
     loja: String(offer.shopName || ''),
-    exemplo: false
   };
 }
 
@@ -120,7 +119,7 @@ module.exports = async function handler(req, res) {
 
     const categoryMap = loadCategoryMap();
     const products = offers.map((offer) => mapOffer(offer, categoryMap)).filter(Boolean);
-    res.setHeader('Cache-Control', 'public, s-maxage=300, stale-while-revalidate=60');
+    res.setHeader('Cache-Control', 'public, s-maxage=60, stale-if-error=300');
     return res.status(200).json(products);
   } catch (error) {
     console.error('Erro ao consultar a Shopee Affiliate Open API:', error?.message || 'erro desconhecido');

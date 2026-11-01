@@ -4,9 +4,9 @@
 
 O site consulta o endpoint `/api/products`, executado como função serverless na Vercel. Essa função chama a Shopee Affiliate Open API brasileira (`productOfferV2`), calcula a assinatura no servidor e converte os resultados para o formato usado pelo site. O frontend não recebe nem conhece o App Secret.
 
-Sem credenciais, o endpoint responde com erro de configuração e o site informa quais variáveis faltam. Ele **não** troca silenciosamente para os dados fictícios de `produtos.json`; esse arquivo foi mantido apenas como referência/demonstração e não é usado pelo site conectado.
+Sem credenciais, o endpoint responde com erro de configuração e o site informa quais variáveis faltam. O arquivo de produtos fictícios foi removido para evitar que os dados de demonstração sejam confundidos com ofertas reais.
 
-A integração retorna até 20 ofertas da primeira página por consulta. A categoria exibida usa os IDs de categoria da API; para apresentar nomes mais amigáveis, configure o mapa opcional descrito abaixo.
+A integração retorna até 20 ofertas da primeira página, em ordem decrescente de vendas conforme a API, por consulta. A Vercel mantém cada resposta em cache por 60 segundos e tenta usar dados antigos por até 5 minutos somente se a API falhar. Assim reduzimos chamadas sem prometer atualização instantânea. A categoria exibida usa os IDs de categoria da API; para apresentar nomes mais amigáveis, configure o mapa opcional descrito abaixo.
 
 ## Colocar seu AppID e sua Senha/Secret na Vercel
 
@@ -33,7 +33,7 @@ O campo `productCatIds` da API contém IDs, não os nomes localizados. Se quiser
 
 O endpoint usa a operação `productOfferV2`, consulta 20 produtos e utiliza o link `offerLink` retornado pela Shopee. Preço, imagem, avaliação, vendas e percentual de desconto são mapeados dos campos retornados pela API. O schema consultado não fornece preço original confiável nem confirma frete grátis; por isso, o site não inventa preço anterior e não anuncia frete grátis.
 
-Os botões de compra só funcionam quando a API devolve `offerLink`. A disponibilidade, os preços, a taxa de chamadas e a validade dos links continuam sujeitos às regras e permissões da Shopee e à conta usada. Faça uma validação real depois de incluir as credenciais; elas não foram fornecidas neste projeto e a chamada autenticada ainda precisa ser testada na sua conta.
+Os botões de compra só funcionam quando a API devolve `offerLink`. Os dados são consultados periodicamente; a API e o cache não garantem atualização instantânea a cada mudança na Shopee. A disponibilidade, os preços, a taxa de chamadas e a validade dos links continuam sujeitos às regras e permissões da Shopee e à conta usada. Faça uma validação real depois de incluir as credenciais; elas não foram fornecidas neste projeto e a chamada autenticada ainda precisa ser testada na sua conta.
 
 ## Antes de divulgar
 
