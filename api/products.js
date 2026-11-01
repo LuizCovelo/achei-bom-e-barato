@@ -56,6 +56,10 @@ function numberOrNull(value) {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function isTestOffer(name) {
+  return /\b(?:teste|test)\b|item[_\s](?:leaf|info)\./i.test(String(name || ''));
+}
+
 function loadCategoryMap() {
   try {
     const value = JSON.parse(process.env.SHOPEE_CATEGORY_MAP || '{}');
@@ -72,7 +76,7 @@ function mapOffer(offer, categoryMap, categoryLabel) {
     : String(categoryMap[String(id)] || `Categoria ${id}`);
   const price = numberOrNull(offer.price);
 
-  if (!offer.productName || price === null) return null;
+  if (!offer.productName || price === null || isTestOffer(offer.productName)) return null;
 
   return {
     id: String(offer.itemId),
