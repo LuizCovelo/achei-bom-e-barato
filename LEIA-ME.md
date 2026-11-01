@@ -2,11 +2,11 @@
 
 ## O que já está conectado
 
-O site consulta o endpoint `/api/products`, executado como função serverless na Vercel. Essa função chama a Shopee Affiliate Open API brasileira (`productOfferV2`), calcula a assinatura no servidor e converte os resultados para o formato usado pelo site. O frontend não recebe nem conhece o App Secret.
+O site consulta o endpoint `/api/products`, executado como função serverless na Vercel. Essa função chama a Shopee Affiliate Open API brasileira (`productOfferV2`) em uma requisição GraphQL assinada, agrupa buscas por termos de moda feminina e organiza os resultados para o site. O frontend não recebe nem conhece o App Secret.
 
 Sem credenciais, o endpoint responde com erro de configuração e o site informa quais variáveis faltam. O arquivo de produtos fictícios foi removido para evitar que os dados de demonstração sejam confundidos com ofertas reais.
 
-A integração retorna até 20 ofertas da primeira página, em ordem decrescente de vendas conforme a API, por consulta. A Vercel mantém cada resposta em cache por 60 segundos e tenta usar dados antigos por até 5 minutos somente se a API falhar. Assim reduzimos chamadas sem prometer atualização instantânea. A categoria exibida usa os IDs de categoria da API; para apresentar nomes mais amigáveis, configure o mapa opcional descrito abaixo.
+A função agrupa 14 buscas GraphQL em uma única chamada HTTP: blusas, vestidos, calças, saias, shorts, conjuntos, lingerie, moda feminina ampla e ofertas gerais. As buscas relevantes combinam ordenação por preço crescente e decrescente para abranger valores baixos e altos. Cada busca solicita até 20 itens da primeira página; o resultado pode chegar a 280 itens antes de remover duplicados. A Vercel mantém a resposta em cache por 60 segundos e pode servir a última resposta por até 5 minutos somente se a Shopee falhar. A atualização não é instantânea, e as respostas são armazenadas por região na CDN. As categorias de roupas vêm dos termos de busca; as categorias gerais podem usar o mapa opcional descrito abaixo.
 
 ## Colocar seu AppID e sua Senha/Secret na Vercel
 
@@ -31,7 +31,7 @@ O campo `productCatIds` da API contém IDs, não os nomes localizados. Se quiser
 
 ## Dados e limites da integração
 
-O endpoint usa a operação `productOfferV2`, consulta 20 produtos e utiliza o link `offerLink` retornado pela Shopee. Preço, imagem, avaliação, vendas e percentual de desconto são mapeados dos campos retornados pela API. O schema consultado não fornece preço original confiável nem confirma frete grátis; por isso, o site não inventa preço anterior e não anuncia frete grátis.
+O endpoint usa a operação `productOfferV2` com palavras-chave de moda feminina e ordenação por preço baixo/alto; também inclui buscas gerais. Usa o link `offerLink` retornado pela Shopee. Preço, imagem, avaliação, vendas e percentual de desconto vêm dos campos retornados pela API. O schema consultado não fornece preço original confiável nem confirma frete grátis; por isso, o site não inventa preço anterior e não anuncia frete grátis. Os filtros de preço só podem mostrar itens que a API retornou e que estão no cache atual.
 
 Os botões de compra só funcionam quando a API devolve `offerLink`. Os dados são consultados periodicamente; a API e o cache não garantem atualização instantânea a cada mudança na Shopee. A disponibilidade, os preços, a taxa de chamadas e a validade dos links continuam sujeitos às regras e permissões da Shopee e à conta usada. Faça uma validação real depois de incluir as credenciais; elas não foram fornecidas neste projeto e a chamada autenticada ainda precisa ser testada na sua conta.
 
@@ -47,3 +47,4 @@ Os botões de compra só funcionam quando a API devolve `offerLink`. Os dados s�
 - [Explorador oficial da Shopee Affiliate Open API Brasil](https://open-api.affiliate.shopee.com.br/explorer/v2)
 - [Documentação da Vercel: configurar builds e arquivos estáticos](https://vercel.com/docs/builds/configure-a-build)
 - [Documentação da Vercel: funções serverless](https://vercel.com/docs/functions)
+- [Documentação da Vercel: cache e cabeçalhos Cache-Control](https://vercel.com/docs/caching/cache-control-headers)
